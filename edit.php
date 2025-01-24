@@ -1,4 +1,17 @@
 <?php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "myShop";
+
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 $id ="";
 $name ="";
 $email ="";
@@ -8,9 +21,55 @@ $address ="";
 $errorMessage = "";
 $successMessage = ""; 
 if ($_SERVER['REQUEST_METHOD']== 'GET') {
+// GET method : show the data of the client
+    if (!isset($_GET['id'])) {
+       header("Location: /myShop/index.php");
+         exit;
+    }
     $id = $_GET['id'];
-    $servername = "localhost";
-    
+    // read the row of the selected client from the database
+    $sql = "SELECT * FROM clients WHERE id = $id";
+    $result = $conn->query($sql);
+    $row = $result->fetch_assoc();
+
+    if (!$row){
+        header ("Location: /myShop/index.php");
+        exit;
+    }
+    $name = $row['name'];
+    $email = $row['email'];
+    $phone = $row['phone'];
+    $address = $row['address'];
+}
+else {
+    //POST method: update the client
+    $id = $_POST['id'];
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $phone = $_POST['phone'];
+    $address = $_POST['address'];
+
+    do {
+        if (empty($name) || empty($email) || empty($phone) || empty($address)) {
+            $errorMessage = "All fields are required";
+            break;
+        }
+        //update the client in the database
+        $sql = "UPDATE clients SET name = ?, email = ?, phone = ?, address = ? WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssssi", $name, $email, $phone, $address, $id);
+        $result = $stmt->execute();
+
+        if (!$result) {
+            $errorMessage = "Error updating client: " . $conn->error;
+            break;
+        }
+
+        $successMessage = "Client updated successfully";
+        header("Location: /myShop/index.php");
+        exit;
+    } while (false);
+}
 ?>
 
 <!DOCTYPE html>
@@ -34,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD']== 'GET') {
             </div>";
         } ?>
         <form method = "post">
-            <input type = "hidden" value ="<?php echo $id; ?>" >
+            <input type = "hidden" name="id" value ="<?php echo $id; ?>" >
             <div class="row mb-3">
                 <label class="col-sm-3 col-form-label">Name</label>
                 <div class = "col-sm-6">
